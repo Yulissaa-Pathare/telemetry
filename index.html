@@ -1,0 +1,1604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UAV TELEMETRY — GROUND CONTROL</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #080c10;
+    --bg-secondary: #0c1218;
+    --bg-panel: #0d1620;
+    --bg-card: #111d2a;
+    --accent-cyan: #00e5ff;
+    --accent-green: #39ff14;
+    --accent-amber: #ffb300;
+    --accent-red: #ff3d3d;
+    --accent-blue: #2979ff;
+    --accent-violet: #7c4dff;
+    --text-primary: #e0f4ff;
+    --text-secondary: #7ab8d4;
+    --text-dim: #3a6478;
+    --border-glow: rgba(0,229,255,0.25);
+    --border-subtle: rgba(0,229,255,0.08);
+    --grid-line: rgba(0,229,255,0.04);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(8,12,16,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-glow);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    height: 60px;
+  }
+
+  .logo-block {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-right: 32px;
+    flex-shrink: 0;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    position: relative;
+  }
+
+  .logo-icon svg { width: 100%; height: 100%; }
+
+  .logo-text {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--accent-cyan);
+    text-shadow: 0 0 12px rgba(0,229,255,0.5);
+    line-height: 1.2;
+  }
+
+  .logo-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+  }
+
+  .nav-tabs {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+  }
+
+  .nav-tab {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    padding: 8px 14px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-bottom: none;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    position: relative;
+    white-space: nowrap;
+    background: transparent;
+  }
+
+  .nav-tab:hover {
+    color: var(--accent-cyan);
+    background: rgba(0,229,255,0.05);
+    border-color: var(--border-subtle);
+  }
+
+  .nav-tab.active {
+    color: var(--accent-cyan);
+    background: rgba(0,229,255,0.08);
+    border-color: var(--border-glow);
+    text-shadow: 0 0 8px rgba(0,229,255,0.5);
+  }
+
+  .nav-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0; right: 0;
+    height: 1px;
+    background: var(--bg-primary);
+  }
+
+  .tab-num {
+    color: var(--text-dim);
+    margin-right: 5px;
+    font-size: 8px;
+  }
+
+  .nav-tab.active .tab-num { color: var(--accent-cyan); opacity: 0.6; }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .status-pill {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status-pill.connected {
+    background: rgba(57,255,20,0.1);
+    border: 1px solid rgba(57,255,20,0.3);
+    color: var(--accent-green);
+  }
+
+  .status-pill.disconnected {
+    background: rgba(255,61,61,0.1);
+    border: 1px solid rgba(255,61,61,0.3);
+    color: var(--accent-red);
+  }
+
+  .pulse-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    animation: pulse-glow 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--accent-green); }
+    50% { opacity: 0.4; box-shadow: none; }
+  }
+
+  .sys-clock {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+  }
+
+  /* ─── MAIN CONTENT ─── */
+  main { padding: 20px 24px; }
+
+  /* ─── PAGE SECTIONS ─── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ─── DASHBOARD PAGE ─── */
+  .dashboard-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .page-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    color: var(--accent-cyan);
+    text-transform: uppercase;
+  }
+
+  .page-source {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    margin-left: auto;
+  }
+
+  /* ─── TELEMETRY CARD GRID ─── */
+  .telem-grid {
+    display: grid;
+    gap: 12px;
+  }
+
+  .telem-grid-main {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+
+  .telem-grid-wide {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  .telem-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    padding: 14px 16px 12px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, background 0.2s;
+    cursor: default;
+  }
+
+  .telem-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--accent-cyan);
+    opacity: 0.4;
+  }
+
+  .telem-card:hover {
+    border-color: var(--border-glow);
+    background: rgba(17,29,42,0.95);
+  }
+
+  .telem-card:hover::before { opacity: 1; }
+
+  .card-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .card-label-icon {
+    width: 14px; height: 14px;
+    opacity: 0.6;
+  }
+
+  .card-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: -0.5px;
+    text-shadow: 0 0 20px rgba(224,244,255,0.2);
+  }
+
+  .card-value.green { color: var(--accent-green); text-shadow: 0 0 20px rgba(57,255,20,0.3); }
+  .card-value.cyan  { color: var(--accent-cyan);  text-shadow: 0 0 20px rgba(0,229,255,0.3); }
+  .card-value.amber { color: var(--accent-amber); text-shadow: 0 0 20px rgba(255,179,0,0.3); }
+  .card-value.red   { color: var(--accent-red);   text-shadow: 0 0 20px rgba(255,61,61,0.3); }
+
+  .card-unit {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    letter-spacing: 1px;
+  }
+
+  .card-accent-line {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent-cyan), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .telem-card:hover .card-accent-line { opacity: 0.4; }
+
+  /* ─── ACCENT COLORS PER CARD ─── */
+  .card-pos::before { background: var(--accent-cyan); }
+  .card-vel::before { background: var(--accent-blue); }
+  .card-att::before { background: var(--accent-violet); }
+  .card-bat::before { background: var(--accent-amber); }
+  .card-cam::before { background: var(--accent-green); }
+
+  /* ─── SECTION HEADER ─── */
+  .section-header {
+    font-family: 'Orbitron', monospace;
+    font-size: 8px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin: 20px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-header::before {
+    content: '';
+    width: 12px; height: 1px;
+    background: var(--accent-cyan);
+  }
+
+  /* ─── STATUS BADGE ─── */
+  .status-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    padding: 3px 10px;
+    border-radius: 2px;
+    display: inline-block;
+    text-transform: uppercase;
+  }
+
+  .badge-ok    { background: rgba(57,255,20,0.12);  border: 1px solid rgba(57,255,20,0.3);  color: var(--accent-green); }
+  .badge-warn  { background: rgba(255,179,0,0.12);  border: 1px solid rgba(255,179,0,0.3);  color: var(--accent-amber); }
+  .badge-error { background: rgba(255,61,61,0.12);  border: 1px solid rgba(255,61,61,0.3);  color: var(--accent-red);   }
+  .badge-info  { background: rgba(41,121,255,0.12); border: 1px solid rgba(41,121,255,0.3); color: var(--accent-blue);  }
+
+  /* ─── ATTITUDE INDICATOR (artificial horizon) ─── */
+  .attitude-container {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+    align-items: start;
+  }
+
+  .horizon-wrapper {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .horizon-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+  }
+
+  canvas.horizon { border-radius: 50%; }
+
+  /* ─── CAMERA PANEL ─── */
+  .camera-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    padding: 16px;
+    position: relative;
+  }
+
+  .camera-feed {
+    background: #050a0e;
+    border: 1px solid var(--border-subtle);
+    width: 100%;
+    aspect-ratio: 16/9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .camera-feed::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,229,255,0.03) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,229,255,0.03) 40px);
+  }
+
+  .camera-no-signal {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+
+  .camera-no-signal span {
+    display: block;
+    font-size: 9px;
+    margin-top: 6px;
+    letter-spacing: 2px;
+    opacity: 0.5;
+  }
+
+  .crosshair {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px; height: 40px;
+    pointer-events: none;
+  }
+
+  .crosshair::before, .crosshair::after {
+    content: '';
+    position: absolute;
+    background: rgba(0,229,255,0.25);
+  }
+
+  .crosshair::before { left: 50%; top: 0; width: 1px; height: 100%; transform: translateX(-50%); }
+  .crosshair::after  { top: 50%; left: 0; height: 1px; width: 100%; transform: translateY(-50%); }
+
+  /* ─── BATTERY BAR ─── */
+  .battery-bar-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    padding: 14px 16px;
+  }
+
+  .bat-bar-track {
+    height: 6px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 1px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+
+  .bat-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-green), #8aff00);
+    border-radius: 1px;
+    transition: width 0.5s;
+  }
+
+  .bat-bar-fill.warn  { background: linear-gradient(90deg, var(--accent-amber), #ffe066); }
+  .bat-bar-fill.crit  { background: linear-gradient(90deg, var(--accent-red),   #ff8888); }
+
+  /* ─── COMPASS ─── */
+  .compass-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* ─── DATA TABLE ─── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .data-table th {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    text-transform: uppercase;
+  }
+
+  .data-table td {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--text-primary);
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(0,229,255,0.04);
+  }
+
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table td:first-child { color: var(--text-secondary); font-size: 10px; letter-spacing: 1px; }
+  .data-table td:last-child { color: var(--text-dim); font-size: 10px; }
+  .data-table tr:hover td { background: rgba(0,229,255,0.03); }
+
+  /* ─── RSSI BAR ─── */
+  .rssi-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 24px;
+  }
+
+  .rssi-bar {
+    width: 8px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 1px;
+    transition: background 0.3s;
+  }
+
+  .rssi-bar.active { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+  .rssi-bar.warn-active { background: var(--accent-amber); }
+  .rssi-bar.crit-active { background: var(--accent-red); }
+
+  /* ─── VISION PAGE ─── */
+  .vision-layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 16px;
+  }
+
+  /* ─── FLIGHT STATUS GAUGES ─── */
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .status-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    padding: 14px 16px;
+  }
+
+  /* ─── COORD DISPLAY ─── */
+  .coord-display {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    color: var(--accent-cyan);
+    letter-spacing: 2px;
+    padding: 4px 0;
+  }
+
+  /* ─── SCAN LINE ANIMATION ─── */
+  @keyframes scanline {
+    0% { top: -2px; }
+    100% { top: 101%; }
+  }
+
+  .scanline-effect::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; top: -2px;
+    height: 2px;
+    background: linear-gradient(transparent, rgba(0,229,255,0.15), transparent);
+    animation: scanline 4s linear infinite;
+    pointer-events: none;
+  }
+
+  /* ─── VALUE ANIMATE ─── */
+  @keyframes value-tick {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+  }
+
+  .ticking { animation: value-tick 2s ease-in-out infinite; }
+
+  /* ─── CORNER DECORATIONS ─── */
+  .corner-deco {
+    position: relative;
+  }
+
+  .corner-deco::before, .corner-deco::after {
+    content: '';
+    position: absolute;
+    width: 10px; height: 10px;
+  }
+
+  .corner-deco::before {
+    top: 0; left: 0;
+    border-top: 1px solid var(--accent-cyan);
+    border-left: 1px solid var(--accent-cyan);
+  }
+
+  .corner-deco::after {
+    bottom: 0; right: 0;
+    border-bottom: 1px solid var(--accent-cyan);
+    border-right: 1px solid var(--accent-cyan);
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 900px) {
+    .attitude-container { grid-template-columns: 1fr; }
+    .vision-layout { grid-template-columns: 1fr; }
+    .status-grid { grid-template-columns: repeat(2,1fr); }
+    header { padding: 0 12px; }
+    .nav-tab { padding: 8px 10px; font-size: 8px; }
+    .logo-text { font-size: 11px; }
+  }
+
+  @media (max-width: 600px) {
+    .status-grid { grid-template-columns: 1fr; }
+    .telem-grid-main { grid-template-columns: repeat(2,1fr); }
+    .logo-block { margin-right: 8px; }
+  }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--border-glow); border-radius: 2px; }
+
+  /* ─── NUMERIC READOUT ─── */
+  .num-large {
+    font-family: 'Orbitron', monospace;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    text-shadow: 0 0 24px rgba(0,229,255,0.4);
+    letter-spacing: -1px;
+  }
+
+  .num-medium {
+    font-family: 'Orbitron', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+
+  /* ─── GAUGE CONTAINER ─── */
+  .gauge-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  /* ─── PAGE FADE IN ─── */
+  .page.active {
+    animation: pagein 0.2s ease;
+  }
+
+  @keyframes pagein {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── MINI SPARKLINE ─── */
+  .sparkline-area {
+    height: 28px;
+    margin-top: 6px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sparkline-area canvas { width: 100%; height: 100%; }
+
+  /* ─── VIBRATION METER ─── */
+  .vib-meter {
+    display: flex;
+    gap: 2px;
+    margin-top: 6px;
+  }
+
+  .vib-seg {
+    flex: 1;
+    height: 8px;
+    border-radius: 1px;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .vib-seg.active-low  { background: var(--accent-green); }
+  .vib-seg.active-mid  { background: var(--accent-amber); }
+  .vib-seg.active-high { background: var(--accent-red); }
+</style>
+</head>
+<body>
+
+<!-- ─── HEADER ─── -->
+<header>
+  <div class="logo-block">
+    <div class="logo-icon">
+      <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="18,2 34,30 18,24 2,30" fill="none" stroke="#00e5ff" stroke-width="1.5" stroke-linejoin="round"/>
+        <polygon points="18,2 34,30 18,24 2,30" fill="rgba(0,229,255,0.07)"/>
+        <line x1="18" y1="2" x2="18" y2="24" stroke="#00e5ff" stroke-width="0.75" opacity="0.5"/>
+        <circle cx="18" cy="17" r="2" fill="#00e5ff" opacity="0.8"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">GROUNDLINK</div>
+      <div class="logo-sub">UAV TELEMETRY v1.0</div>
+    </div>
+  </div>
+
+  <nav class="nav-tabs">
+    <div class="nav-tab active" onclick="switchPage('dashboard')">
+      <span class="tab-num">◆</span>DASHBOARD
+    </div>
+    <div class="nav-tab" onclick="switchPage('navigation')">
+      <span class="tab-num">01</span>NAVIGATION
+    </div>
+    <div class="nav-tab" onclick="switchPage('velocity')">
+      <span class="tab-num">02</span>VELOCITY
+    </div>
+    <div class="nav-tab" onclick="switchPage('attitude')">
+      <span class="tab-num">03</span>ATTITUDE
+    </div>
+    <div class="nav-tab" onclick="switchPage('battery')">
+      <span class="tab-num">04</span>BATTERY
+    </div>
+    <div class="nav-tab" onclick="switchPage('flightstatus')">
+      <span class="tab-num">05</span>FLIGHT STATUS
+    </div>
+    <div class="nav-tab" onclick="switchPage('comms')">
+      <span class="tab-num">06</span>COMMS
+    </div>
+    <div class="nav-tab" onclick="switchPage('vision')">
+      <span class="tab-num">07</span>VISION
+    </div>
+  </nav>
+
+  <div class="header-right">
+    <div class="status-pill disconnected" id="conn-status">
+      <div class="pulse-dot" style="background:var(--accent-red);animation:none;box-shadow:none;"></div>
+      NO LINK
+    </div>
+    <div class="sys-clock" id="sys-clock">00:00:00 UTC</div>
+  </div>
+</header>
+
+<!-- ─── MAIN ─── -->
+<main>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- PAGE: DASHBOARD                             -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="page active" id="page-dashboard">
+    <div class="dashboard-header">
+      <div class="page-title">◆ DASHBOARD OVERVIEW</div>
+      <div class="page-source">ALL SUBSYSTEMS</div>
+    </div>
+
+    <div class="section-header">POSITION</div>
+    <div class="telem-grid telem-grid-main">
+      <div class="telem-card card-pos">
+        <div class="card-label">Y — HEIGHT</div>
+        <div class="card-value cyan" id="db-height">—</div>
+        <div class="card-unit">METERS AGL</div>
+        <div class="card-accent-line"></div>
+      </div>
+      <div class="telem-card card-pos">
+        <div class="card-label">HORIZONTAL VEL</div>
+        <div class="card-value" id="db-hvel">—</div>
+        <div class="card-unit">m/s</div>
+        <div class="card-accent-line"></div>
+      </div>
+      <div class="telem-card card-pos">
+        <div class="card-label">VERTICAL VEL</div>
+        <div class="card-value" id="db-vvel">—</div>
+        <div class="card-unit">m/s</div>
+        <div class="card-accent-line"></div>
+      </div>
+    </div>
+
+    <div class="section-header">ATTITUDE</div>
+    <div class="telem-grid telem-grid-main">
+      <div class="telem-card card-att">
+        <div class="card-label">ROLL</div>
+        <div class="card-value" id="db-roll">—</div>
+        <div class="card-unit">DEGREES</div>
+        <div class="card-accent-line"></div>
+      </div>
+      <div class="telem-card card-att">
+        <div class="card-label">PITCH</div>
+        <div class="card-value" id="db-pitch">—</div>
+        <div class="card-unit">DEGREES</div>
+        <div class="card-accent-line"></div>
+      </div>
+      <div class="telem-card card-att">
+        <div class="card-label">YAW</div>
+        <div class="card-value" id="db-yaw">—</div>
+        <div class="card-unit">DEGREES</div>
+        <div class="card-accent-line"></div>
+      </div>
+    </div>
+
+    <div class="section-header">POWER</div>
+    <div class="telem-grid telem-grid-main">
+      <div class="telem-card card-bat">
+        <div class="card-label">BATTERY VOLTAGE</div>
+        <div class="card-value amber" id="db-bvolt">—</div>
+        <div class="card-unit">VOLTS</div>
+        <div class="card-accent-line"></div>
+      </div>
+      <div class="telem-card card-bat">
+        <div class="card-label">BATTERY SOC</div>
+        <div class="card-value amber" id="db-bsoc">—</div>
+        <div class="card-unit">PERCENT</div>
+        <div class="bat-bar-track"><div class="bat-bar-fill" id="db-bbar" style="width:0%"></div></div>
+        <div class="card-accent-line"></div>
+      </div>
+    </div>
+
+    <div class="section-header">VISION</div>
+    <div class="telem-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+      <div class="telem-card card-cam" style="grid-column: span 2;">
+        <div class="card-label">CAMERA FEED</div>
+        <div class="camera-feed scanline-effect" style="aspect-ratio:16/7;">
+          <div class="crosshair"></div>
+          <div class="camera-no-signal">
+            NO SIGNAL
+            <span>COMPANION COMPUTER OFFLINE</span>
+          </div>
+        </div>
+        <div class="card-accent-line"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="telem-card card-cam">
+          <div class="card-label">CAMERA STATUS</div>
+          <div class="card-value" style="font-size:16px;"><span class="status-badge badge-warn">OFFLINE</span></div>
+          <div class="card-accent-line"></div>
+        </div>
+        <div class="telem-card card-cam">
+          <div class="card-label">OBJECT X, Y</div>
+          <div class="coord-display" id="db-objxy">— , —</div>
+          <div class="card-unit">PIXELS</div>
+          <div class="card-accent-line"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- PAGE 1: NAVIGATION                         -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="page" id="page-navigation">
+    <div class="dashboard-header">
+      <div class="page-title">01 / NAVIGATION</div>
+      <div class="page-source">SOURCE: PIXHAWK · GPS + EKF</div>
+    </div>
+
+    <div class="section-header">POSITION XYZ</div>
+    <div class="telem-grid telem-grid-main" style="margin-bottom:12px;">
+      <div class="telem-card card-pos">
+        <div class="card-label">POSITION X</div>
+        <div class="card-value cyan" id="nav-px">—</div>
+        <div class="card-unit">METERS</div>
+      </div>
+      <div class="telem-card card-pos">
+        <div class="card-label">POSITION Y</div>
+        <div class="card-value cyan" id="nav-py">—</div>
+        <div class="card-unit">METERS</div>
+      </div>
+      <div class="telem-card card-pos">
+        <div class="card-label">POSITION Z (ALT)</div>
+        <div class="card-value cyan" id="nav-pz">—</div>
+        <div class="card-unit">METERS AGL</div>
+      </div>
+    </div>
+
+    <div class="section-header">GPS COORDINATES</div>
+    <div class="telem-grid" style="grid-template-columns:1fr 1fr;margin-bottom:12px;">
+      <div class="telem-card card-pos">
+        <div class="card-label">LATITUDE</div>
+        <div class="card-value" style="font-size:18px;font-family:'Share Tech Mono',monospace;" id="nav-lat">— ° N</div>
+        <div class="card-unit">DECIMAL DEGREES</div>
+      </div>
+      <div class="telem-card card-pos">
+        <div class="card-label">LONGITUDE</div>
+        <div class="card-value" style="font-size:18px;font-family:'Share Tech Mono',monospace;" id="nav-lon">— ° E</div>
+        <div class="card-unit">DECIMAL DEGREES</div>
+      </div>
+    </div>
+
+    <div class="section-header">SPEED & HEADING</div>
+    <div class="telem-grid telem-grid-main">
+      <div class="telem-card card-pos">
+        <div class="card-label">GROUND SPEED</div>
+        <div class="card-value" id="nav-gspd">—</div>
+        <div class="card-unit">m/s</div>
+      </div>
+      <div class="telem-card card-pos">
+        <div class="card-label">AIR SPEED</div>
+        <div class="card-value" id="nav-aspd">—</div>
+        <div class="card-unit">m/s</div>
+      </div>
+      <div class="telem-card card-pos">
+        <div class="card-label">HEADING</div>
+        <div class="card-value cyan" id="nav-hdg">—</div>
+        <div class="card-unit">DEGREES MAG</div>
+      </div>
+      <div class="telem-card card-pos">
+        <div class="card-label">DIST FROM HOME</div>
+        <div class="card-value" id="nav-dfh">—</div>
+        <div class="card-unit">METERS</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- PAGE 2: VELOCITY & MOTION                  -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="page" id="page-velocity">
+    <div class="dashboard-header">
+      <div class="page-title">02 / VELOCITY & MOTION</div>
+      <div class="page-source">SOURCE: PIXHAWK · IMU + EKF</div>
+    </div>
+
+    <div class="section-header">VELOCITY COMPONENTS</div>
+    <div class="telem-grid telem-grid-main" style="margin-bottom:12px;">
+      <div class="telem-card card-vel">
+        <div class="card-label">VELOCITY X</div>
+        <div class="card-value" style="color:var(--accent-blue);text-shadow:0 0 20px rgba(41,121,255,0.4);" id="vel-x">—</div>
+        <div class="card-unit">m/s EAST</div>
+      </div>
+      <div class="telem-card card-vel">
+        <div class="card-label">VELOCITY Y</div>
+        <div class="card-value" style="color:var(--accent-blue);text-shadow:0 0 20px rgba(41,121,255,0.4);" id="vel-y">—</div>
+        <div class="card-unit">m/s NORTH</div>
+      </div>
+      <div class="telem-card card-vel">
+        <div class="card-label">VELOCITY Z</div>
+        <div class="card-value" style="color:var(--accent-blue);text-shadow:0 0 20px rgba(41,121,255,0.4);" id="vel-z">—</div>
+        <div class="card-unit">m/s DOWN</div>
+      </div>
+    </div>
+
+    <div class="section-header">DERIVED SPEEDS</div>
+    <div class="telem-grid" style="grid-template-columns:1fr 1fr;margin-bottom:12px;">
+      <div class="telem-card card-vel">
+        <div class="card-label">HORIZONTAL SPEED</div>
+        <div class="card-value cyan" id="vel-hspd">—</div>
+        <div class="card-unit">m/s</div>
+      </div>
+      <div class="telem-card card-vel">
+        <div class="card-label">VERTICAL SPEED</div>
+        <div class="card-value cyan" id="vel-vspd">—</div>
+        <div class="card-unit">m/s</div>
+      </div>
+    </div>
+
+    <div class="section-header">ACCELERATION</div>
+    <div class="telem-grid telem-grid-main">
+      <div class="telem-card card-vel">
+        <div class="card-label">ACCEL X</div>
+        <div class="card-value" style="font-size:20px;" id="vel-ax">—</div>
+        <div class="card-unit">m/s²</div>
+      </div>
+      <div class="telem-card card-vel">
+        <div class="card-label">ACCEL Y</div>
+        <div class="card-value" style="font-size:20px;" id="vel-ay">—</div>
+        <div class="card-unit">m/s²</div>
+      </div>
+      <div class="telem-card card-vel">
+        <div class="card-label">ACCEL Z</div>
+        <div class="card-value" style="font-size:20px;" id="vel-az">—</div>
+        <div class="card-unit">m/s²</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- PAGE 3: ATTITUDE & IMU                     -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="page" id="page-attitude">
+    <div class="dashboard-header">
+      <div class="page-title">03 / ATTITUDE & IMU</div>
+      <div class="page-source">SOURCE: PIXHAWK · IMU</div>
+    </div>
+
+    <div class="attitude-container">
+      <div class="horizon-wrapper corner-deco">
+        <div class="horizon-title">ARTIFICIAL HORIZON</div>
+        <canvas class="horizon" id="horizon-canvas" width="220" height="220"></canvas>
+        <div style="display:flex;gap:24px;margin-top:4px;">
+          <div style="text-align:center;">
+            <div class="card-label">ROLL</div>
+            <div class="num-medium" id="att-roll-disp">0.0°</div>
+          </div>
+          <div style="text-align:center;">
+            <div class="card-label">PITCH</div>
+            <div class="num-medium" id="att-pitch-disp">0.0°</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-header">EULER ANGLES</div>
+        <div class="telem-grid telem-grid-main" style="margin-bottom:12px;">
+          <div class="telem-card" style="border-color:rgba(124,77,255,0.25);">
+            <div class="card-label">ROLL</div>
+            <div class="card-value" style="color:var(--accent-violet);" id="att-roll">—</div>
+            <div class="card-unit">DEGREES</div>
+          </div>
+          <div class="telem-card" style="border-color:rgba(124,77,255,0.25);">
+            <div class="card-label">PITCH</div>
+            <div class="card-value" style="color:var(--accent-violet);" id="att-pitch">—</div>
+            <div class="card-unit">DEGREES</div>
+          </div>
+          <div class="telem-card" style="border-color:rgba(124,77,255,0.25);">
+            <div class="card-label">YAW</div>
+            <div class="card-value" style="color:var(--accent-violet);" id="att-yaw">—</div>
+            <div class="card-unit">DEGREES</div>
+          </div>
+        </div>
+
+        <div class="section-header">ANGULAR RATES</div>
+        <div class="telem-grid telem-grid-main">
+          <div class="telem-card">
+            <div class="card-label">ROLL RATE</div>
+            <div class="card-value" style="font-size:20px;" id="att-rr">—</div>
+            <div class="card-unit">deg/s</div>
+          </div>
+          <div class="telem-card">
+            <div class="card-label">PITCH RATE</div>
+            <div class="card-value" style="font-size:20px;" id="att-pr">—</div>
+            <div class="card-unit">deg/s</div>
+          </div>
+          <div class="telem-card">
+            <div class="card-label">YAW RATE</div>
+            <div class="card-value" style="font-size:20px;" id="att-yr">—</div>
+            <div class="card-unit">deg/s</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-header">GYROSCOPE RAW</div>
+    <div class="telem-grid telem-grid-main" style="margin-bottom:12px;">
+      <div class="telem-card"><div class="card-label">GYRO X</div><div class="card-value" style="font-size:18px;" id="att-gx">—</div><div class="card-unit">rad/s</div></div>
+      <div class="telem-card"><div class="card-label">GYRO Y</div><div class="card-value" style="font-size:18px;" id="att-gy">—</div><div class="card-unit">rad/s</div></div>
+      <div class="telem-card"><div class="card-label">GYRO Z</div><div class="card-value" style="font-size:18px;" id="att-gz">—</div><div class="card-unit">rad/s</div></div>
+    </div>
+
+    <div class="section-header">ACCELEROMETER RAW</div>
+    <div class="telem-grid telem-grid-main" style="margin-bottom:12px;">
+      <div class="telem-card"><div class="card-label">ACCEL X</div><div class="card-value" style="font-size:18px;" id="att-acx">—</div><div class="card-unit">m/s²</div></div>
+      <div class="telem-card"><div class="card-label">ACCEL Y</div><div class="card-value" style="font-size:18px;" id="att-acy">—</div><div class="card-unit">m/s²</div></div>
+      <div class="telem-card"><div class="card-label">ACCEL Z</div><div class="card-value" style="font-size:18px;" id="att-acz">—</div><div class="card-unit">m/s²</div></div>
+    </div>
+
+    <div class="section-header">VIBRATION LEVELS</div>
+    <div class="telem-grid" style="grid-template-columns:repeat(3,1fr);">
+      <div class="telem-card">
+        <div class="card-label">VIB X</div>
+        <div class="card-value" style="font-size:18px;" id="att-vx">—</div>
+        <div class="vib-meter" id="vib-x-bar"></div>
+        <div class="card-unit">m/s²</div>
+      </div>
+      <div class="telem-card">
+        <div class="card-label">VIB Y</div>
+        <div class="card-value" style="font-size:18px;" id="att-vy">—</div>
+        <div class="vib-meter" id="vib-y-bar"></div>
+        <div class="card-unit">m/s²</div>
+      </div>
+      <div class="telem-card">
+        <div class="card-label">VIB Z</div>
+        <div class="card-value" style="font-size:18px;" id="att-vz">—</div>
+        <div class="vib-meter" id="vib-z-bar"></div>
+        <div class="card-unit">m/s²</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- PAGE 4: BATTERY & POWER                    -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="page" id="page-battery">
+    <div class="dashboard-header">
+      <div class="page-title">04 / BATTERY & POWER</div>
+      <div class="page-source">SOURCE: PIXHAWK · POWER MODULE</div>
+    </div>
+
+    <div class="section-header">ELECTRICAL</div>
+    <div class="telem-grid telem-grid-main" style="margin-bottom:12px;">
+      <div class="telem-card card-bat">
+        <div class="card-label">VOLTAGE</div>
+        <div class="card-value amber" id="bat-volt">—</div>
+        <div class="card-unit">VOLTS</div>
+      </div>
+      <div class="telem-card card-bat">
+        <div class="card-label">CURRENT</div>
+        <div class="card-value amber" id="bat-curr">—</div>
+        <div class="card-unit">AMPERES</div>
+      </div>
+      <div class="telem-card card-bat">
+        <div class="card-label">POWER</div>
+        <div class="card-value amber" id="bat-pow">—</div>
+        <div class="card-unit">WATTS</div>
+      </div>
+    </div>
+
+    <div class="section-header">CAPACITY</div>
+    <div class="battery-bar-wrap" style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div class="card-label">STATE OF CHARGE</div>
+          <div class="num-large" id="bat-soc">— %</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="card-label">REMAINING CAPACITY</div>
+          <div class="num-medium" id="bat-rem">— mAh</div>
+        </div>
+      </div>
+      <div class="bat-bar-track" style="height:10px;margin-top:16px;">
+        <div class="bat-bar-fill" id="bat-bar-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="section-header">ESTIMATED ENDURANCE</div>
+    <div class="telem-grid" style="grid-template-columns:1fr 1fr;">
+      <div class="telem-card card-bat">
+        <div class="card-label">EST. FLIGHT TIME</div>
+        <div class="card-value amber" style="font-size:20px;" id="bat-eft">— MIN</div>
+        <div class="card-unit">REMAINING AT CURRENT DRAW</div>
+      </div>
+      <div class="telem-card card-bat">
+        <div class="card-label">TOTAL CONSUMED</div>
+        <div class="card-value" style="font-size:20px;" id="bat-cons">— mAh</div>
+        <div class="card-unit">SINCE ARMING</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- PAGE 5: FLIGHT STATUS                      -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="page" id="page-flightstatus">
+    <div class="dashboard-header">
+      <div class="page-title">05 / FLIGHT STATUS</div>
+      <div class="page-source">SOURCE: PIXHAWK · SYSTEM DATA</div>
+    </div>
+
+    <div class="status-grid">
+      <div class="telem-card">
+        <div class="card-label">FLIGHT MODE</div>
+        <div style="margin-top:8px;"><span class="status-badge badge-info" id="fs-mode">UNKNOWN</span></div>
+      </div>
+      <div class="telem-card">
+        <div class="card-label">ARMED STATUS</div>
+        <div style="margin-top:8px;"><span class="status-badge badge-warn" id="fs-armed">DISARMED</span></div>
+      </div>
+      <div class="telem-card">
+        <div class="card-label">FAILSAFE</div>
+        <div style="margin-top:8px;"><span class="status-badge badge-ok" id="fs-failsafe">NORMAL</span></div>
+      </div>
+      <div class="telem-card">
+        <div class="card-label">EKF STATUS</div>
+        <div style="margin-top:8px;"><span class="status-badge badge-warn" id="fs-ekf">UNKNOWN</span></div>
+      </div>
+      <div class="telem-card">
+        <div class="card-label">GPS STATUS</div>
+        <div style="margin-top:8px;"><span class="status-badge badge-warn" id="fs-gps">NO FIX</span></div>
+      </div>
+      <div class="telem-card">
+        <div class="card-label">SENSOR STATUS</div>
+        <div style="margin-top:8px;"><span class="status-badge badge-warn" id="fs-sens">CHECKING...</span></div>
+      </div>
+    </div>
+
+    <div class="section-header">SYSTEM HEALTH TABLE</div>
+    <div class="telem-card" style="padding:0;overflow:hidden;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>SUBSYSTEM</th>
+            <th>STATUS</th>
+            <th>DETAIL</th>
+            <th>LAST UPDATE</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>GPS MODULE</td><td><span class="status-badge badge-warn">NO FIX</span></td><td>Awaiting MAVLink</td><td>—</td></tr>
+          <tr><td>IMU / ACCEL</td><td><span class="status-badge badge-warn">PENDING</span></td><td>Awaiting MAVLink</td><td>—</td></tr>
+          <tr><td>BAROMETER</td><td><span class="status-badge badge-warn">PENDING</span></td><td>Awaiting MAVLink</td><td>—</td></tr>
+          <tr><td>COMPASS</td><td><span class="status-badge badge-warn">PENDING</span></td><td>Awaiting MAVLink</td><td>—</td></tr>
+          <tr><td>RANGEFINDER</td><td><span class="status-badge badge-info">N/A</span></td><td>Not configured</td><td>—</td></tr>
+          <tr><td>OPTICAL FLOW</td><td><span class="status-badge badge-info">N/A</span></td><td>Not configured</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- PAGE 6: COMMUNICATION                      -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="page" id="page-comms">
+    <div class="dashboard-header">
+      <div class="page-title">06 / COMMUNICATION</div>
+      <div class="page-source">SOURCE: TELEMETRY RADIO · MAVLink</div>
+    </div>
+
+    <div class="section-header">LINK STATUS</div>
+    <div class="telem-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-bottom:12px;">
+      <div class="telem-card">
+        <div class="card-label">TELEMETRY LINK</div>
+        <div style="margin-top:8px;"><span class="status-badge badge-error" id="com-link">OFFLINE</span></div>
+      </div>
+      <div class="telem-card">
+        <div class="card-label">RSSI</div>
+        <div class="card-value" style="font-size:22px;" id="com-rssi">—</div>
+        <div class="rssi-bars" id="rssi-bars" style="margin-top:8px;">
+          <div class="rssi-bar" style="height:6px;"></div>
+          <div class="rssi-bar" style="height:10px;"></div>
+          <div class="rssi-bar" style="height:14px;"></div>
+          <div class="rssi-bar" style="height:18px;"></div>
+          <div class="rssi-bar" style="height:22px;"></div>
+        </div>
+        <div class="card-unit">dBm</div>
+      </div>
+      <div class="telem-card">
+        <div class="card-label">PACKET LOSS</div>
+        <div class="card-value" id="com-pktloss">—</div>
+        <div class="card-unit">PERCENT</div>
+      </div>
+      <div class="telem-card">
+        <div class="card-label">DATA RATE</div>
+        <div class="card-value" id="com-rate">—</div>
+        <div class="card-unit">bytes/s</div>
+      </div>
+      <div class="telem-card">
+        <div class="card-label">LATENCY</div>
+        <div class="card-value" id="com-lat">—</div>
+        <div class="card-unit">MILLISECONDS</div>
+      </div>
+    </div>
+
+    <div class="section-header">MAVLink DIAGNOSTICS</div>
+    <div class="telem-card" style="padding:0;overflow:hidden;">
+      <table class="data-table">
+        <thead>
+          <tr><th>PARAMETER</th><th>VALUE</th><th>UNIT</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>MAVLink Version</td><td id="com-mavver">—</td><td>—</td></tr>
+          <tr><td>System ID</td><td id="com-sysid">—</td><td>—</td></tr>
+          <tr><td>Component ID</td><td id="com-compid">—</td><td>—</td></tr>
+          <tr><td>Messages Received</td><td id="com-msgrcv">0</td><td>pkts</td></tr>
+          <tr><td>Messages Sent</td><td id="com-msgsnt">0</td><td>pkts</td></tr>
+          <tr><td>Connection Type</td><td>Serial / UDP</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- PAGE 7: VISION & DETECTION                 -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="page" id="page-vision">
+    <div class="dashboard-header">
+      <div class="page-title">07 / VISION & DETECTION</div>
+      <div class="page-source">SOURCE: COMPANION COMPUTER</div>
+    </div>
+
+    <div class="vision-layout">
+      <div>
+        <div class="section-header">CAMERA FEED</div>
+        <div class="telem-card" style="padding:12px;">
+          <div class="camera-feed scanline-effect" style="width:100%;">
+            <div class="crosshair"></div>
+            <div class="camera-no-signal">
+              NO SIGNAL
+              <span>AWAITING COMPANION COMPUTER</span>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:10px;">
+            <div>
+              <div class="card-label">CAMERA STATUS</div>
+              <span class="status-badge badge-warn" id="vis-camstatus">OFFLINE</span>
+            </div>
+            <div style="text-align:right;">
+              <div class="card-label">DETECTION STATUS</div>
+              <span class="status-badge badge-warn" id="vis-detstatus">INACTIVE</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-header">DETECTION DATA</div>
+        <div class="telem-card" style="margin-bottom:12px;">
+          <div class="card-label">OBJECT COORD X</div>
+          <div class="card-value cyan" style="font-size:22px;" id="vis-ox">—</div>
+          <div class="card-unit">PIXELS</div>
+        </div>
+        <div class="telem-card" style="margin-bottom:12px;">
+          <div class="card-label">OBJECT COORD Y</div>
+          <div class="card-value cyan" style="font-size:22px;" id="vis-oy">—</div>
+          <div class="card-unit">PIXELS</div>
+        </div>
+        <div class="telem-card" style="margin-bottom:12px;">
+          <div class="card-label">DETECTION TIMESTAMP</div>
+          <div class="card-value" style="font-size:14px;font-family:'Share Tech Mono',monospace;" id="vis-ts">—</div>
+          <div class="card-unit">UTC</div>
+        </div>
+        <div class="telem-card">
+          <div class="card-label">CONFIDENCE</div>
+          <div class="card-value" id="vis-conf">—</div>
+          <div class="card-unit">PERCENT</div>
+          <div class="bat-bar-track" style="margin-top:8px;">
+            <div class="bat-bar-fill" id="vis-conf-bar" style="width:0%;background:linear-gradient(90deg,var(--accent-violet),var(--accent-cyan));"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ─── STATE ───
+const state = {
+  roll: 0, pitch: 0, yaw: 0,
+  height: 0, hvel: 0, vvel: 0,
+  bvolt: 0, bsoc: 0,
+};
+
+// ─── PAGE SWITCHING ───
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+
+  if (name === 'attitude') drawHorizon(state.roll, state.pitch);
+}
+
+// ─── CLOCK ───
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getUTCHours()).padStart(2,'0');
+  const m = String(now.getUTCMinutes()).padStart(2,'0');
+  const s = String(now.getUTCSeconds()).padStart(2,'0');
+  document.getElementById('sys-clock').textContent = `${h}:${m}:${s} UTC`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ─── ARTIFICIAL HORIZON CANVAS ───
+function drawHorizon(roll, pitch) {
+  const canvas = document.getElementById('horizon-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const cx = w/2, cy = h/2, r = w/2 - 4;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Clip to circle
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.clip();
+
+  // Draw sky/ground with pitch offset
+  const pitchOffset = (pitch / 90) * r;
+  const rollRad = (roll * Math.PI) / 180;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rollRad);
+
+  // Sky
+  ctx.fillStyle = '#0a1e3a';
+  ctx.fillRect(-w, -h + pitchOffset, w*2, h*2);
+
+  // Ground
+  ctx.fillStyle = '#2d1a08';
+  ctx.fillRect(-w, pitchOffset, w*2, h*2);
+
+  // Horizon line
+  ctx.strokeStyle = 'rgba(0,229,255,0.8)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-w, pitchOffset);
+  ctx.lineTo(w, pitchOffset);
+  ctx.stroke();
+
+  // Pitch lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 0.75;
+  for (let deg = -40; deg <= 40; deg += 10) {
+    if (deg === 0) continue;
+    const y = pitchOffset - (deg / 90) * r;
+    const len = Math.abs(deg) % 20 === 0 ? 40 : 20;
+    ctx.beginPath();
+    ctx.moveTo(-len, y);
+    ctx.lineTo(len, y);
+    ctx.stroke();
+    if (Math.abs(deg) % 20 === 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.font = '9px Share Tech Mono';
+      ctx.fillText(deg + '°', len + 4, y + 3);
+    }
+  }
+
+  ctx.restore();
+
+  // Fixed aircraft symbol
+  ctx.strokeStyle = 'rgba(0,229,255,0.9)';
+  ctx.lineWidth = 2;
+  // Left wing
+  ctx.beginPath(); ctx.moveTo(cx-50, cy); ctx.lineTo(cx-20, cy); ctx.lineTo(cx-20,cy+8); ctx.stroke();
+  // Right wing
+  ctx.beginPath(); ctx.moveTo(cx+50, cy); ctx.lineTo(cx+20, cy); ctx.lineTo(cx+20,cy+8); ctx.stroke();
+  // Center dot
+  ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI*2);
+  ctx.fillStyle = '#00e5ff'; ctx.fill();
+
+  // Bank indicator arc
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(0,229,255,0.3)';
+  ctx.lineWidth = 1;
+  ctx.arc(cx, cy, r-10, -Math.PI*1.1, -Math.PI*0.1);
+  ctx.stroke();
+
+  // Bank pointer
+  const bankRad = rollRad - Math.PI/2;
+  const bx = cx + (r-10) * Math.cos(bankRad);
+  const by = cy + (r-10) * Math.sin(bankRad);
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(0,229,255,0.8)';
+  ctx.lineWidth = 1.5;
+  ctx.moveTo(cx + (r-18)*Math.cos(bankRad), cy + (r-18)*Math.sin(bankRad));
+  ctx.lineTo(bx, by);
+  ctx.stroke();
+
+  ctx.restore();
+
+  // Outer ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(0,229,255,0.35)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+drawHorizon(0, 0);
+
+// ─── VIBRATION BAR ───
+function renderVibBar(id, val, maxVal) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const segs = 10;
+  const filled = Math.min(Math.round((val / maxVal) * segs), segs);
+  el.innerHTML = '';
+  for (let i = 0; i < segs; i++) {
+    const d = document.createElement('div');
+    d.className = 'vib-seg';
+    if (i < filled) {
+      d.classList.add(i < 4 ? 'active-low' : i < 7 ? 'active-mid' : 'active-high');
+    }
+    el.appendChild(d);
+  }
+}
+
+// ─── DEMO SIMULATION ───
+// Simulates data when no MAVLink is connected
+// Replace this with real WebSocket / MAVLink data in future
+let simTime = 0;
+
+function simulateTelemetry() {
+  simTime += 0.05;
+
+  const roll  = Math.sin(simTime * 0.4) * 8;
+  const pitch = Math.sin(simTime * 0.25) * 5;
+  const yaw   = (simTime * 12) % 360;
+  const height = 28.5 + Math.sin(simTime * 0.1) * 2.5;
+  const hvel   = 3.2 + Math.sin(simTime * 0.3) * 0.8;
+  const vvel   = Math.sin(simTime * 0.2) * 0.5;
+  const bvolt  = 22.1 - simTime * 0.002;
+  const bsoc   = Math.max(0, 87 - simTime * 0.05);
+
+  state.roll = roll; state.pitch = pitch; state.yaw = yaw;
+  state.height = height; state.hvel = hvel; state.vvel = vvel;
+  state.bvolt = bvolt; state.bsoc = bsoc;
+
+  // Dashboard
+  setText('db-height',  height.toFixed(1));
+  setText('db-hvel',    hvel.toFixed(2));
+  setText('db-vvel',    vvel.toFixed(2));
+  setText('db-roll',    roll.toFixed(1));
+  setText('db-pitch',   pitch.toFixed(1));
+  setText('db-yaw',     yaw.toFixed(1));
+  setText('db-bvolt',   bvolt.toFixed(2));
+  setText('db-bsoc',    bsoc.toFixed(0));
+  setBar('db-bbar', bsoc, bsoc < 20 ? 'crit' : bsoc < 40 ? 'warn' : '');
+
+  // Navigation
+  setText('nav-px',  (Math.sin(simTime*0.05)*50).toFixed(2));
+  setText('nav-py',  (Math.cos(simTime*0.04)*50).toFixed(2));
+  setText('nav-pz',  height.toFixed(1));
+  setText('nav-lat', '12.9716° N');
+  setText('nav-lon', '77.5946° E');
+  setText('nav-gspd', hvel.toFixed(2));
+  setText('nav-aspd', (hvel + 0.8).toFixed(2));
+  setText('nav-hdg',  yaw.toFixed(1));
+  setText('nav-dfh',  (Math.sqrt(Math.pow(Math.sin(simTime*0.05)*50,2)+Math.pow(Math.cos(simTime*0.04)*50,2))).toFixed(1));
+
+  // Velocity
+  const vx = Math.sin(simTime*0.3)*hvel;
+  const vy = Math.cos(simTime*0.3)*hvel;
+  setText('vel-x', vx.toFixed(3));
+  setText('vel-y', vy.toFixed(3));
+  setText('vel-z', (-vvel).toFixed(3));
+  setText('vel-hspd', hvel.toFixed(2));
+  setText('vel-vspd', Math.abs(vvel).toFixed(2));
+  setText('vel-ax', (Math.sin(simTime*0.7)*0.3).toFixed(3));
+  setText('vel-ay', (Math.cos(simTime*0.7)*0.3).toFixed(3));
+  setText('vel-az', (-9.81 + Math.sin(simTime*0.5)*0.1).toFixed(3));
+
+  // Attitude
+  setText('att-roll',  roll.toFixed(2));
+  setText('att-pitch', pitch.toFixed(2));
+  setText('att-yaw',   yaw.toFixed(2));
+  setText('att-roll-disp',  roll.toFixed(1) + '°');
+  setText('att-pitch-disp', pitch.toFixed(1) + '°');
+  setText('att-rr', (Math.sin(simTime)*5).toFixed(2));
+  setText('att-pr', (Math.cos(simTime)*3).toFixed(2));
+  setText('att-yr', (Math.sin(simTime*0.5)*2).toFixed(2));
+  const gx = (roll*0.017*0.3).toFixed(4); setText('att-gx', gx);
+  const gy = (pitch*0.017*0.3).toFixed(4); setText('att-gy', gy);
+  const gz = (yaw*0.017*0.01).toFixed(4); setText('att-gz', gz);
+  setText('att-acx', (Math.sin(simTime*0.7)*0.3).toFixed(4));
+  setText('att-acy', (Math.cos(simTime*0.7)*0.3).toFixed(4));
+  setText('att-acz', (-9.81).toFixed(4));
+  const vib = 0.15 + Math.abs(Math.sin(simTime*3))*0.1;
+  setText('att-vx', vib.toFixed(3));
+  setText('att-vy', (vib*0.9).toFixed(3));
+  setText('att-vz', (vib*1.1).toFixed(3));
+  renderVibBar('vib-x-bar', vib, 1.0);
+  renderVibBar('vib-y-bar', vib*0.9, 1.0);
+  renderVibBar('vib-z-bar', vib*1.1, 1.0);
+
+  if (document.getElementById('page-attitude').classList.contains('active')) {
+    drawHorizon(roll, pitch);
+  }
+
+  // Battery
+  const curr = 8.5 + Math.sin(simTime*0.4)*1.2;
+  const pow  = bvolt * curr;
+  const remCap = bsoc * 50; // assume 5000mAh full
+  const eft = (remCap / (curr * (1000/60))).toFixed(0);
+  setText('bat-volt', bvolt.toFixed(2));
+  setText('bat-curr', curr.toFixed(2));
+  setText('bat-pow',  pow.toFixed(1));
+  setText('bat-soc',  bsoc.toFixed(0) + ' %');
+  setText('bat-rem',  remCap.toFixed(0) + ' mAh');
+  setText('bat-eft',  eft + ' MIN');
+  setText('bat-cons', ((87 - bsoc) * 50).toFixed(0) + ' mAh');
+  setBar('bat-bar-fill', bsoc, bsoc < 20 ? 'crit' : bsoc < 40 ? 'warn' : '');
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function setBar(id, pct, cls) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  el.className = 'bat-bar-fill ' + (cls || '');
+}
+
+// ─── START SIMULATION ───
+// This will be replaced by real MAVLink data
+setInterval(simulateTelemetry, 100);
+
+// Mark as simulation (no real link)
+document.getElementById('conn-status').innerHTML =
+  '<div class="pulse-dot" style="background:var(--accent-amber);box-shadow:0 0 6px var(--accent-amber);"></div> DEMO MODE';
+document.getElementById('conn-status').className = 'status-pill';
+document.getElementById('conn-status').style.cssText =
+  'background:rgba(255,179,0,0.1);border:1px solid rgba(255,179,0,0.3);color:var(--accent-amber);font-family:Share Tech Mono,monospace;font-size:10px;padding:4px 10px;border-radius:2px;letter-spacing:1px;display:flex;align-items:center;gap:6px;';
+
+</script>
+</body>
+</html>
