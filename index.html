@@ -1598,6 +1598,36 @@ document.getElementById('conn-status').innerHTML =
 document.getElementById('conn-status').className = 'status-pill';
 document.getElementById('conn-status').style.cssText =
   'background:rgba(255,179,0,0.1);border:1px solid rgba(255,179,0,0.3);color:var(--accent-amber);font-family:Share Tech Mono,monospace;font-size:10px;padding:4px 10px;border-radius:2px;letter-spacing:1px;display:flex;align-items:center;gap:6px;';
+const ws = new WebSocket("ws://192.168.3.92"); // replace with Pi IP
+
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+    console.log(data);
+
+    if(data.lat) document.getElementById("lat").innerText = data.lat;
+    if(data.lon) document.getElementById("lon").innerText = data.lon;
+    if(data.alt) document.getElementById("alt").innerText = data.alt;
+
+    if(data.horizontal_velocity)
+        document.getElementById("hvel").innerText = data.horizontal_velocity;
+
+    if(data.vertical_velocity)
+        document.getElementById("vvel").innerText = data.vertical_velocity;
+
+    if(data.roll) document.getElementById("roll").innerText = data.roll;
+    if(data.pitch) document.getElementById("pitch").innerText = data.pitch;
+    if(data.yaw) document.getElementById("yaw").innerText = data.yaw;
+
+    if(data.battery)
+        document.getElementById("battery").innerText = data.battery + "%";
+
+    if(data.voltage)
+        document.getElementById("voltage").innerText = data.voltage;
+
+    if(data.mode)
+        document.getElementById("mode").innerText = data.mode;
+};
 
 </script>
 </body>
